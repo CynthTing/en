@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>英語拆彈部隊 (Speed Defusal)</title>
+    <style>
+        :root {
+            --bg-color: #2c3e50;
+            --timer-color: #e74c3c;
+            --wire-1: #3498db; /* Blue */
+            --wire-2: #f1c40f; /* Yellow */
+            --wire-3: #2ecc71; /* Green */
+            --text-color: #ecf0f1;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            color: var(--text-color);
+            transition: background-color 0.5s;
+        }
+
+        /* --- 1. 開始/設定畫面 --- */
+        #setup-screen {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9);
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .input-group {
+            background: #34495e;
+            padding: 40px;
+            border-radius: 15px;
+            border: 2px solid #7f8c8d;
+        }
+
+        input {
+            font-size: 1.5rem;
+            padding: 10px;
+            margin: 10px;
+            text-align: center;
+            border-radius: 5px;
+            border: none;
+        }
+
+        .start-btn {
+            background: #e74c3c;
+            color: white;
+            font-size: 2rem;
+            padding: 15px 50px;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            margin-top: 20px;
+            font-weight: bold;
+            box-shadow: 0 5px 0 #c0392b;
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        /* --- 2. 遊戲主介面 --- */
+        #game-interface {
+            display: none;
+            flex: 1;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        /* 頂部資訊 */
+        .top-bar {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            padding: 20px 40px;
+            box-sizing: border-box;
+            font-size: 2rem;
+            font-weight: bold;
+        }
+
+        .score-box { color: #f1c40f; }
+        
+        /* 倒數計時器 */
+        #timer-display {
+            font-size: 6rem;
+            font-family: 'Courier New', Courier, monospace;
+            font-weight: bold;
+            color: var(--timer-color);
+            background: #000;
+            padding: 10px 40px;
+            border-radius: 10px;
+            border: 4px solid #555;
+            margin-bottom: 30px;
+            box-shadow: 0 0 20px rgba(231, 76, 60, 0.5);
+        }
+
+        /* 炸彈本體區 */
+        .bomb-container {
+            background: #34495e;
+            padding: 30px;
+            border-radius: 20px;
+            width: 80%;
+            max-width: 800px;
+            text-align: center;
+            border: 5px solid #2c3e50;
+            box-shadow: inset 0 0 50px rgba(0,0,0,0.5);
+            position: relative;
+        }
+
+        /* 題目顯示 */
+        #question-text {
+            font-size: 3rem;
+            margin-bottom: 30px;
+            text-shadow: 2px 2px 0 #000;
+        }
+
+        /* 電線 (選項) */
+        .wires-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .wire-btn {
+            position: relative;
+            background: linear-gradient(90deg, #444 0%, var(--wire-color) 20%, var(--wire-color) 80%, #444 100%);
+            color: white;
+            border: none;
+            padding: 15px;
+            font-size: 2rem;
+            font-weight: bold;
+            cursor: pointer;
+            text-shadow: 1px 1px 2px black;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            transition: transform 0.1s;
+        }
+
+        .wire-btn::before {
+            content: '✂️';
+            position: absolute;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 1.5rem;
+        }
+
+        .wire-btn:active { transform: scale(0.98); }
+
+        /* 特效動畫 */
+        .shake-screen { animation: shake 0.5s; background-color: #500 !important; }
+        .flash-green { animation: flash 0.3s; background-color: #050 !important; }
+
+        @keyframes shake {
+            0% { transform: translate(1px, 1px) rotate(0deg); }
+            10% { transform: translate(-1px, -2px) rotate(-1deg); }
+            20% { transform: translate(-3px, 0px) rotate(1deg); }
+            30% { transform: translate(3px, 2px) rotate(0deg); }
+            40% { transform: translate(1px, -1px) rotate(1deg); }
+            50% { transform: translate(-1px, 2px) rotate(-1deg); }
+            60% { transform: translate(-3px, 1px) rotate(0deg); }
+            70% { transform: translate(3px, 1px) rotate(-1deg); }
+            80% { transform: translate(-1px, -1px) rotate(1deg); }
+            90% { transform: translate(1px, 2px) rotate(0deg); }
+            100% { transform: translate(1px, -2px) rotate(-1deg); }
+        }
+
+        @keyframes flash {
+            0% { background-color: var(--bg-color); }
+            50% { background-color: #2ecc71; }
+            100% { background-color: var(--bg-color); }
+        }
+
+        /* --- 3. 遊戲結束畫面 --- */
+        #game-over-screen {
+            display: none;
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95);
+            z-index: 200;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            text-align: center;
+        }
+
+        #final-score { font-size: 5rem; color: #f1c40f; margin: 20px; }
+        #end-msg { font-size: 2.5rem; }
+
+    </style>
+</head>
+<body>
+
+    <div id="setup-screen">
+        <h1 style="color:#e74c3c; font-size: 3rem;">💣 Speed Defusal</h1>
+        <div class="input-group">
+            <h3 style="margin-top:0;">Enter Student Info</h3>
+            <input type="text" id="p-name" placeholder="Name (e.g. Leo)" value="Student">
+            <br>
+            <input type="number" id="p-age" placeholder="Age (e.g. 10)" value="10">
+            <br>
+            <button class="start-btn" onclick="startGame()">MISSION START</button>
+        </div>
+    </div>
+
+    <div id="game-interface">
+        <div class="top-bar">
+            <div>Bomb Squad: <span id="display-name">Leo</span></div>
+            <div class="score-box">Defused: <span id="score">0</span></div>
+        </div>
+
+        <div id="timer-display">60.00</div>
+
+        <div class="bomb-container">
+            <div id="question-text">Ready?</div>
+            <div class="wires-container" id="wires-area">
+                </div>
+        </div>
+    </div>
+
+    <div id="game-over-screen">
+        <h1 style="color: #e74c3c;">MISSION ENDED</h1>
+        <div id="end-msg">Time's Up!</div>
+        <div>Total Bombs Defused:</div>
+        <div id="final-score">0</div>
+        <button class="start-btn" onclick="location.reload()">TRY AGAIN</button>
+    </div>
+
+    <script>
+        const numWords = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", 
+                          "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen", "twenty"];
+
+        // 題庫 (ID映射)
+        const questions = [
+            { id: "hi", text: "Hi!", type: "greeting" },
+            { id: "how_are_you", text: "How are you?", type: "greeting" },
+            { id: "good_morning", text: "Good morning.", type: "greeting" },
+            { id: "good_afternoon", text: "Good afternoon.", type: "greeting" },
+            { id: "good_evening", text: "Good evening.", type: "greeting" },
+            { id: "whats_name", text: "What's your name?", type: "name" },
+            { id: "how_old", text: "How old are you?", type: "age" },
+            { id: "nice_meet", text: "Nice to meet you.", type: "greeting" },
+            { id: "thank_you", text: "Thank you.", type: "polite" },
+            { id: "goodbye", text: "Goodbye.", type: "farewell" }
+        ];
+
+        let studentName = "";
+        let studentAge = 10;
+        let score = 0;
+        let timeLeft = 60.00; // 60秒
+        let timerInterval;
+        let isPlaying = false;
+        
+        // 音效顏色 (隨機分配給按鈕)
+        const colors = ["#e74c3c", "#3498db", "#f1c40f", "#9b59b6", "#2ecc71"];
+
+        function startGame() {
+            studentName = document.getElementById('p-name').value || "Agent";
+            studentAge = parseInt(document.getElementById('p-age').value) || 10;
+
+            document.getElementById('display-name').innerText = studentName;
+            document.getElementById('setup-screen').style.display = 'none';
+            document.getElementById('game-interface').style.display = 'flex';
+
+            score = 0;
+            timeLeft = 60.00;
+            isPlaying = true;
+            updateScore();
+            
+            // 啟動計時器
+            timerInterval = setInterval(gameLoop, 100); // 每0.1秒更新一次
+
+            nextQuestion();
+        }
+
+        function gameLoop() {
+            if (!isPlaying) return;
+
+            timeLeft -= 0.1;
+            
+            // 時間格式化 (補零)
+            let displayTime = Math.max(0, timeLeft).toFixed(2);
+            document.getElementById('timer-display').innerText = displayTime;
+
+            // 視覺警告：時間少於10秒變紅
+            if (timeLeft < 10) {
+                document.getElementById('timer-display').style.color = "#ff0000";
+                document.getElementById('timer-display').style.borderColor = "#ff0000";
+            }
+
+            if (timeLeft <= 0) {
+                gameOver();
+            }
+        }
+
+        function nextQuestion() {
+            if (!isPlaying) return;
+
+            // 隨機選題
+            const q = questions[Math.floor(Math.random() * questions.length)];
+            document.getElementById('question-text').innerText = q.text;
+
+            // 產生選項
+            const options = generateOptions(q);
+            renderWires(options);
+        }
+
+        function generateOptions(qObj) {
+            let correctText = "";
+            let distractors = [];
+
+            // 邏輯同前，加入個人化
+            if (qObj.id === "whats_name") {
+                correctText = `My name is ${studentName}.`;
+                distractors = ["I'm fine.", "Good morning.", `Hello, ${studentName}.`];
+            } else if (qObj.id === "how_old") {
+                let ageWord = numWords[studentAge] || studentAge;
+                correctText = `I'm ${ageWord} years old.`;
+                // 錯誤年齡
+                let wrongAge1 = numWords[studentAge + 1 > 20 ? studentAge - 1 : studentAge + 1];
+                let wrongAge2 = numWords[studentAge - 2 < 1 ? studentAge + 2 : studentAge - 2];
+                distractors = [`I'm ${wrongAge1} years old.`, `I'm ${wrongAge2} years old.`, "I'm fine."];
+            } else {
+                correctText = getStaticAnswer(qObj.id);
+                // 通用錯誤庫
+                const pool = ["Goodbye.", "I'm fine.", "Thank you.", "Nice to meet you.", "Good morning."];
+                distractors = pool.filter(d => d !== correctText);
+            }
+
+            // 取 2 個錯誤選項 + 1 個正確選項
+            let finalOptions = [
+                { text: correctText, isCorrect: true },
+                { text: distractors[0], isCorrect: false },
+                { text: distractors[1], isCorrect: false }
+            ];
+            
+            return shuffleArray(finalOptions);
+        }
+
+        function renderWires(options) {
+            const container = document.getElementById('wires-area');
+            container.innerHTML = '';
+            
+            options.forEach((opt, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'wire-btn';
+                btn.innerText = opt.text;
+                // 隨機分配顏色
+                btn.style.setProperty('--wire-color', colors[index % colors.length]);
+                
+                btn.onclick = () => handleAnswer(opt.isCorrect);
+                container.appendChild(btn);
+            });
+        }
+
+        function handleAnswer(isCorrect) {
+            if (!isPlaying) return;
+
+            if (isCorrect) {
+                // 答對：加分、畫面閃綠、下一題
+                score++;
+                updateScore();
+                document.body.classList.add('flash-green');
+                setTimeout(() => document.body.classList.remove('flash-green'), 300);
+                nextQuestion();
+            } else {
+                // 答錯：扣時間、畫面震動
+                timeLeft -= 5; // 懲罰扣 5 秒
+                document.body.classList.add('shake-screen');
+                setTimeout(() => document.body.classList.remove('shake-screen'), 500);
+            }
+        }
+
+        function getStaticAnswer(id) {
+            const map = {
+                "hi": "Hello.",
+                "how_are_you": "I'm fine.",
+                "good_morning": "Good morning.",
+                "good_afternoon": "Good afternoon.",
+                "good_evening": "Good evening.",
+                "nice_meet": "Nice to meet you, too.",
+                "thank_you": "You're welcome.",
+                "goodbye": "Goodbye."
+            };
+            return map[id] || "Hello.";
+        }
+
+        function gameOver() {
+            isPlaying = false;
+            clearInterval(timerInterval);
+            document.getElementById('final-score').innerText = score;
+            document.getElementById('game-over-screen').style.display = 'flex';
+        }
+
+        function updateScore() {
+            document.getElementById('score').innerText = score;
+        }
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+    </script>
+</body>
+</html>

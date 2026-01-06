@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>四年級英語互動遊戲 (Classroom English)</title>
+    <style>
+        :root {
+            --primary-color: #FFD700; /* Gold */
+            --secondary-color: #4facfe; /* Blue */
+            --accent-color: #ff5858; /* Red */
+            --bg-color: #f0f8ff;
+            --text-color: #333;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        /* 標題區 */
+        header {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        h1 {
+            color: #2c3e50;
+            font-size: 2.5rem;
+            margin: 0;
+            text-shadow: 2px 2px 0px rgba(0,0,0,0.1);
+        }
+
+        /* 模式切換按鈕 */
+        .controls {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 20px;
+        }
+
+        .mode-btn {
+            background: white;
+            border: 3px solid #ccc;
+            border-radius: 15px;
+            padding: 10px 25px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+            color: #555;
+        }
+
+        .mode-btn.active {
+            background-color: var(--secondary-color);
+            color: white;
+            border-color: var(--secondary-color);
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(79, 172, 254, 0.4);
+        }
+
+        /* 遊戲主畫面 (大卡片) */
+        #display-card {
+            width: 80%;
+            max-width: 800px;
+            height: 400px;
+            background: white;
+            border-radius: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            border: 8px solid var(--primary-color);
+            position: relative;
+            transition: transform 0.1s;
+        }
+
+        #result-text {
+            font-size: 4rem; /* 超大字體 */
+            font-weight: 800;
+            color: var(--text-color);
+            padding: 20px;
+            line-height: 1.2;
+        }
+
+        /* 操作按鈕 (GO / STOP) */
+        #action-btn {
+            margin-top: 30px;
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 120px;
+            height: 120px;
+            font-size: 2rem;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 8px 0 #b33939, 0 15px 20px rgba(0,0,0,0.2);
+            transition: all 0.1s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #action-btn:active {
+            transform: translateY(8px);
+            box-shadow: 0 0 0 #b33939, 0 5px 10px rgba(0,0,0,0.2);
+        }
+
+        /* 動畫效果 */
+        .shake {
+            animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+        }
+
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-2px, 0, 0); }
+            20%, 80% { transform: translate3d(4px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-6px, 0, 0); }
+            40%, 60% { transform: translate3d(6px, 0, 0); }
+        }
+
+        /* RWD 適應 */
+        @media (max-width: 768px) {
+            #result-text { font-size: 2.5rem; }
+            #display-card { height: 300px; width: 90%; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>🇬🇧 English Super Roulette 🇺🇸</h1>
+    </header>
+
+    <div class="controls">
+        <button class="mode-btn active" onclick="setMode('sentences')">Sentences (句子)</button>
+        <button class="mode-btn" onclick="setMode('numbers')">Numbers (數字)</button>
+    </div>
+
+    <div id="display-card">
+        <div id="result-text">Ready?</div>
+    </div>
+
+    <button id="action-btn" onclick="toggleSpin()">GO!</button>
+
+    <script>
+        // 資料庫
+        const sentences = [
+            "Hi.", "Hello.", 
+            "How are you?", "I’m fine.", "I’m good.",
+            "Good morning.", "Good afternoon.", "Good evening.", "Good night.",
+            "What’s your name?", "My name is ___.", "I’m ___.",
+            "Nice to meet you.", "Nice to meet you, too.",
+            "How old are you?", "I’m ___ years old.",
+            "Thank you.", "You’re welcome.", "Goodbye."
+        ];
+
+        // 數字 1-20
+        const numbers = Array.from({length: 20}, (_, i) => String(i + 1));
+        const numberWords = [
+            "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten",
+            "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen", "Twenty"
+        ];
+
+        let currentList = sentences; // 預設模式
+        let isSpinning = false;
+        let spinInterval;
+        let currentMode = 'sentences';
+
+        const displayCard = document.getElementById('display-card');
+        const resultText = document.getElementById('result-text');
+        const actionBtn = document.getElementById('action-btn');
+        const modeBtns = document.querySelectorAll('.mode-btn');
+
+        // 切換模式
+        function setMode(mode) {
+            if (isSpinning) return; // 旋轉中不可切換
+            currentMode = mode;
+            
+            // 更新按鈕樣式
+            modeBtns.forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+
+            // 更新資料列表
+            if (mode === 'numbers') {
+                currentList = numbers;
+                resultText.innerText = "1-20";
+                displayCard.style.borderColor = "#4facfe"; // 藍色邊框
+            } else {
+                currentList = sentences;
+                resultText.innerText = "Ready?";
+                displayCard.style.borderColor = "#FFD700"; // 金色邊框
+            }
+        }
+
+        // 開始/停止 邏輯
+        function toggleSpin() {
+            if (isSpinning) {
+                stopSpin();
+            } else {
+                startSpin();
+            }
+        }
+
+        function startSpin() {
+            isSpinning = true;
+            actionBtn.innerText = "STOP";
+            actionBtn.style.backgroundColor = "#333"; // 按鈕變黑色
+            
+            // 快速切換文字
+            spinInterval = setInterval(() => {
+                const randomIndex = Math.floor(Math.random() * currentList.length);
+                let textToShow = currentList[randomIndex];
+                
+                // 如果是數字模式，偶爾顯示英文單字增加難度（可選）
+                // 這裡我們簡單顯示數字即可
+                
+                resultText.innerText = textToShow;
+            }, 80); // 每80毫秒換一次
+        }
+
+        function stopSpin() {
+            isSpinning = false;
+            clearInterval(spinInterval);
+            actionBtn.innerText = "GO!";
+            actionBtn.style.backgroundColor = "#ff5858"; // 變回紅色
+            
+            // 加上震動特效
+            displayCard.classList.add('shake');
+            setTimeout(() => displayCard.classList.remove('shake'), 500);
+
+            // 如果是數字模式，停止後顯示該數字的英文（教學輔助）
+            if (currentMode === 'numbers') {
+                const num = parseInt(resultText.innerText);
+                // 小字顯示英文拼寫
+                resultText.innerHTML = `${num}<br><span style="font-size:2rem; color:#666;">${numberWords[num-1]}</span>`;
+            }
+        }
+    </script>
+</body>
+</html>

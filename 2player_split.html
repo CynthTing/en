@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>雙人同步英語對話 (Fix Version)</title>
+    <style>
+        :root {
+            --p1-color: #4facfe; /* Blue */
+            --p2-color: #ff9a9e; /* Pink */
+            --bg-color: #f4f4f9;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* --- 1. 設定畫面 --- */
+        #setup-screen {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: white;
+            z-index: 200;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .setup-box {
+            background: #fff;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            text-align: center;
+            border: 2px solid #ccc;
+            max-width: 600px;
+            width: 90%;
+        }
+
+        .player-inputs {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+            gap: 20px;
+        }
+
+        .p-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 20px;
+            border-radius: 15px;
+        }
+        
+        .bg-blue-light { background: #eef7ff; border: 2px solid var(--p1-color); }
+        .bg-pink-light { background: #fff0f1; border: 2px solid var(--p2-color); }
+
+        .p-group h3 { margin: 0; font-size: 1.5rem; color: #333; }
+
+        input {
+            font-size: 1.2rem;
+            padding: 8px;
+            border: 2px solid #ccc;
+            border-radius: 8px;
+            text-align: center;
+            width: 140px;
+        }
+
+        .start-btn {
+            background: #333;
+            color: white;
+            font-size: 1.5rem;
+            padding: 15px 50px;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .start-btn:active { transform: scale(0.95); }
+
+        /* --- 2. 遊戲主畫面 (分割螢幕) --- */
+        #game-screen {
+            display: none;
+            flex: 1;
+            flex-direction: row; /* 左右排列 */
+            height: 100%;
+        }
+
+        /* 通用側邊樣式 */
+        .side-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .side-p1 { background-color: #eef7ff; border-right: 5px solid white; }
+        .side-p2 { background-color: #fff0f1; border-left: 5px solid white; }
+
+        .player-header {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 20px;
+            text-align: center;
+            padding: 10px;
+            border-radius: 15px;
+            background: white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        .txt-p1 { color: var(--p1-color); }
+        .txt-p2 { color: var(--p2-color); }
+
+        /* 鎖定狀態 */
+        .locked {
+            opacity: 0.5;
+            filter: grayscale(80%);
+            pointer-events: none; /* 禁止點擊 */
+        }
+        
+        .waiting-msg {
+            display: none;
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #555;
+            background: rgba(255,255,255,0.9);
+            padding: 20px 40px;
+            border-radius: 50px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            z-index: 10;
+        }
+
+        .locked .waiting-msg { display: block; }
+
+        /* 卡片容器 */
+        .cards-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .card {
+            background: white;
+            border: 3px solid transparent;
+            width: 80%;
+            padding: 20px;
+            font-size: 1.8rem;
+            font-weight: bold;
+            border-radius: 15px;
+            cursor: pointer;
+            box-shadow: 0 5px 0 rgba(0,0,0,0.1);
+            transition: transform 0.1s;
+            text-align: center;
+            color: #444;
+        }
+
+        .card:active { transform: translateY(5px); box-shadow: none; }
+
+        /* 選中狀態 */
+        .selected-card {
+            background: #fff;
+            border: 5px solid #FFD700; /* 金色邊框 */
+            transform: scale(1.05);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+        }
+
+        .side-p1 .card { border-color: #cbdcf7; }
+        .side-p2 .card { border-color: #f7cbcf; }
+
+        /* 答錯震動 */
+        .shake { animation: shake 0.5s; background-color: #ffcccc !important; border-color: #ff0000 !important; }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        /* --- 3. 結算對話視窗 --- */
+        #review-modal {
+            display: none;
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 300;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            backdrop-filter: blur(5px);
+        }
+
+        .review-box {
+            background: white;
+            padding: 40px;
+            border-radius: 30px;
+            width: 70%;
+            max-width: 800px;
+            text-align: center;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+            animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes popIn {
+            from { transform: scale(0.5); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .review-line {
+            font-size: 2.5rem;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 15px;
+            font-weight: bold;
+        }
+
+        .next-btn {
+            background: #34C759;
+            color: white;
+            font-size: 2rem;
+            padding: 15px 60px;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            margin-top: 30px;
+            box-shadow: 0 6px 0 #248a3d;
+        }
+        .next-btn:active { transform: translateY(6px); box-shadow: none; }
+
+    </style>
+</head>
+<body>
+
+    <div id="setup-screen">
+        <div class="setup-box">
+            <h1>👥 Split-Screen Co-op</h1>
+            <div class="player-inputs">
+                <div class="p-group bg-blue-light">
+                    <h3>Player 1 (Left)</h3>
+                    <input type="text" id="p1-name" placeholder="Name" value="Leo">
+                    <input type="number" id="p1-age" placeholder="Age" value="10">
+                </div>
+                <div class="p-group bg-pink-light">
+                    <h3>Player 2 (Right)</h3>
+                    <input type="text" id="p2-name" placeholder="Name" value="Tina">
+                    <input type="number" id="p2-age" placeholder="Age" value="9">
+                </div>
+            </div>
+            <button class="start-btn" onclick="initGame()">Start Game</button>
+        </div>
+    </div>
+
+    <div id="game-screen">
+        <div class="side-panel side-p1" id="panel-p1">
+            <div class="waiting-msg">Waiting...</div>
+            <div class="player-header txt-p1" id="p1-header">Player 1</div>
+            <div class="cards-container" id="cards-p1"></div>
+        </div>
+
+        <div class="side-panel side-p2" id="panel-p2">
+            <div class="waiting-msg">Waiting...</div>
+            <div class="player-header txt-p2" id="p2-header">Player 2</div>
+            <div class="cards-container" id="cards-p2"></div>
+        </div>
+    </div>
+
+    <div id="review-modal">
+        <div class="review-box">
+            <h2 style="color:#666; margin:0;">Great! Let's Read:</h2>
+            <div class="review-line" style="background:#eef7ff; color:#007aff;" id="review-q">...</div>
+            <div class="review-line" style="background:#fff0f1; color:#ff5858;" id="review-a">...</div>
+            <button class="next-btn" onclick="nextRound()">Next Round ➤</button>
+        </div>
+    </div>
+
+    <script>
+        const numWords = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", 
+                          "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen", "twenty"];
+
+        const questions = [
+            { id: "hi", text: "Hi!", type: "greeting" },
+            { id: "how_are_you", text: "How are you?", type: "greeting" },
+            { id: "good_morning", text: "Good morning.", type: "greeting" },
+            { id: "good_afternoon", text: "Good afternoon.", type: "greeting" },
+            { id: "good_evening", text: "Good evening.", type: "greeting" },
+            { id: "whats_name", text: "What's your name?", type: "name" },
+            { id: "how_old", text: "How old are you?", type: "age" },
+            { id: "nice_meet", text: "Nice to meet you.", type: "greeting" },
+            { id: "thank_you", text: "Thank you.", type: "polite" },
+            { id: "goodbye", text: "Goodbye.", type: "farewell" }
+        ];
+
+        let p1 = { name: "", age: 10 };
+        let p2 = { name: "", age: 10 };
+        let turnPlayer = 1; 
+        let currentQ = null; 
+
+        const panelP1 = document.getElementById('panel-p1');
+        const panelP2 = document.getElementById('panel-p2');
+        const cardsP1 = document.getElementById('cards-p1');
+        const cardsP2 = document.getElementById('cards-p2');
+        const modal = document.getElementById('review-modal');
+
+        function initGame() {
+            p1.name = document.getElementById('p1-name').value || "Player 1";
+            p1.age = parseInt(document.getElementById('p1-age').value) || 10;
+            p2.name = document.getElementById('p2-name').value || "Player 2";
+            p2.age = parseInt(document.getElementById('p2-age').value) || 10;
+
+            document.getElementById('p1-header').innerText = p1.name;
+            document.getElementById('p2-header').innerText = p2.name;
+
+            document.getElementById('setup-screen').style.display = 'none';
+            document.getElementById('game-screen').style.display = 'flex';
+
+            startAskPhase();
+        }
+
+        function startAskPhase() {
+            cardsP1.innerHTML = '';
+            cardsP2.innerHTML = '';
+
+            if (turnPlayer === 1) {
+                unlockPanel(panelP1);
+                lockPanel(panelP2, `Waiting for ${p1.name}...`);
+                let options = getRandomItems(questions, 3);
+                renderCards(cardsP1, options, (item, btn) => handleAskSelection(item, btn, 1));
+            } else {
+                unlockPanel(panelP2);
+                lockPanel(panelP1, `Waiting for ${p2.name}...`);
+                let options = getRandomItems(questions, 3);
+                renderCards(cardsP2, options, (item, btn) => handleAskSelection(item, btn, 2));
+            }
+        }
+
+        function handleAskSelection(qItem, btn, playerNum) {
+            currentQ = qItem;
+
+            if (playerNum === 1) {
+                cardsP1.innerHTML = ''; 
+                btn.onclick = null; 
+                btn.classList.add('selected-card');
+                cardsP1.appendChild(btn); 
+                lockPanel(panelP1, "Waiting for Answer...");
+                
+                unlockPanel(panelP2);
+                generateAndShowAnswers(2);
+            } else {
+                cardsP2.innerHTML = '';
+                btn.onclick = null;
+                btn.classList.add('selected-card');
+                cardsP2.appendChild(btn);
+                lockPanel(panelP2, "Waiting for Answer...");
+
+                unlockPanel(panelP1);
+                generateAndShowAnswers(1);
+            }
+        }
+
+        function generateAndShowAnswers(answeringPlayerNum) {
+            const me = (answeringPlayerNum === 1) ? p1 : p2;
+            const other = (answeringPlayerNum === 1) ? p2 : p1;
+            const targetContainer = (answeringPlayerNum === 1) ? cardsP1 : cardsP2;
+
+            let options = generateAnswerOptions(currentQ, me, other);
+            
+            renderCards(targetContainer, options, (item, btn) => {
+                if (item.isCorrect) {
+                    btn.classList.add('selected-card');
+                    lockPanel((answeringPlayerNum === 1 ? panelP1 : panelP2), "Done!");
+                    setTimeout(() => showReviewModal(item.text), 500);
+                } else {
+                    btn.classList.add('shake');
+                    setTimeout(() => btn.classList.remove('shake'), 500);
+                }
+            });
+        }
+
+        // --- 修正後的邏輯 (Fix Logic) ---
+        function generateAnswerOptions(qObj, me, other) {
+            let correctText = "";
+            let distractors = [];
+
+            // 1. 決定正確答案
+            if (qObj.id === "whats_name") {
+                correctText = `My name is ${me.name}.`;
+                distractors.push(`My name is ${other.name}.`);
+                distractors.push("Nice to meet you.");
+            } else if (qObj.id === "how_old") {
+                let ageWord = numWords[me.age] || me.age;
+                correctText = `I'm ${ageWord} years old.`;
+                let otherAgeVal = (other.age === me.age) ? me.age + 2 : other.age;
+                let otherAgeWord = numWords[otherAgeVal] || otherAgeVal;
+                distractors.push(`I'm ${otherAgeWord} years old.`);
+                distractors.push(`I'm fine.`);
+            } else {
+                correctText = getStaticAnswer(qObj.id);
+                
+                // 2. 建立通用錯誤選項庫
+                const pool = ["Goodbye.", "I'm fine.", "Thank you.", "Nice to meet you.", "Good morning."];
+                
+                // 3. 過濾：從 pool 中移除正確答案，避免重複
+                distractors = pool.filter(d => d !== correctText);
+                
+                // 4. 取前兩個當作錯誤選項
+                distractors = distractors.slice(0, 2);
+            }
+
+            let finalOptions = [
+                { text: correctText, isCorrect: true },
+                { text: distractors[0], isCorrect: false },
+                { text: distractors[1], isCorrect: false }
+            ];
+            return shuffleArray(finalOptions);
+        }
+
+        function getStaticAnswer(id) {
+            const map = {
+                "hi": "Hello.",
+                "how_are_you": "I'm fine.",
+                "good_morning": "Good morning.",
+                "good_afternoon": "Good afternoon.",
+                "good_evening": "Good evening.",
+                "nice_meet": "Nice to meet you, too.",
+                "thank_you": "You're welcome.",
+                "goodbye": "Goodbye."
+            };
+            return map[id] || "Hello.";
+        }
+
+        function showReviewModal(ansText) {
+            const askerName = (turnPlayer === 1) ? p1.name : p2.name;
+            const answererName = (turnPlayer === 1) ? p2.name : p1.name;
+
+            document.getElementById('review-q').innerText = `${askerName}: ${currentQ.text}`;
+            document.getElementById('review-a').innerText = `${answererName}: ${ansText}`;
+            modal.style.display = 'flex';
+        }
+
+        function nextRound() {
+            modal.style.display = 'none';
+            turnPlayer = (turnPlayer === 1) ? 2 : 1;
+            startAskPhase();
+        }
+
+        function lockPanel(panel, msg) {
+            panel.classList.add('locked');
+            let msgBox = panel.querySelector('.waiting-msg');
+            if(msg) msgBox.innerText = msg;
+        }
+
+        function unlockPanel(panel) {
+            panel.classList.remove('locked');
+        }
+
+        function renderCards(container, items, clickHandler) {
+            container.innerHTML = '';
+            items.forEach(item => {
+                const btn = document.createElement('div');
+                btn.className = 'card';
+                btn.innerText = item.text || item; 
+                btn.onclick = () => clickHandler(item, btn);
+                container.appendChild(btn);
+            });
+        }
+
+        function getRandomItems(arr, n) {
+            let shuffled = arr.slice(0);
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled.slice(0, n);
+        }
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+    </script>
+</body>
+</html>
