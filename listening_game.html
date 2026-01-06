@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Listen & Pick (Secret Code)</title>
+    <style>
+        :root {
+            --bg-color: #fff1f2;
+            --card-bg: #ffffff;
+            --primary: #db2777;
+            --code-bg: #1f2937; /* 深色背景顯示代號 */
+            --code-text: #f3f4f6;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+        }
+
+        #game-container {
+            background: white;
+            width: 90%;
+            max-width: 800px;
+            height: 80vh;
+            border-radius: 30px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .header {
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            color: #888;
+            font-weight: bold;
+            border-bottom: 2px solid #f3f4f6;
+        }
+
+        /* 聽力區 */
+        .listening-stage {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(180deg, #fff 0%, #fff1f2 100%);
+            transition: all 0.3s;
+        }
+
+        .ear-icon {
+            font-size: 8rem;
+            margin-bottom: 20px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .instruction {
+            font-size: 2rem;
+            color: var(--primary);
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        /* 代號顯示區 (新設計) */
+        .code-box {
+            margin-top: 10px;
+            background: var(--code-bg);
+            color: var(--code-text);
+            padding: 10px 30px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .code-label {
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            color: #9ca3af;
+            letter-spacing: 1px;
+        }
+
+        .code-display {
+            font-size: 3rem;
+            font-weight: 800;
+            letter-spacing: 2px;
+            font-family: 'Courier New', Courier, monospace; /* 等寬字體更有代號感 */
+            color: #fbbf24; /* 金黃色 */
+        }
+
+        /* 選項區 */
+        .options-grid {
+            display: none;
+            flex: 1;
+            padding: 30px;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            align-content: center;
+        }
+
+        .option-btn {
+            background: white;
+            border: 3px solid #e5e7eb;
+            border-bottom: 6px solid #d1d5db;
+            border-radius: 20px;
+            font-size: 2rem;
+            color: #374151;
+            cursor: pointer;
+            transition: all 0.1s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .option-btn:active {
+            transform: translateY(4px);
+            border-bottom-width: 2px;
+        }
+
+        .action-btn {
+            padding: 20px;
+            font-size: 1.8rem;
+            background: var(--primary);
+            color: white;
+            border: none;
+            cursor: pointer;
+            width: 100%;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+        
+        .action-btn:hover { background: #be185d; }
+
+        .correct { background-color: #d1fae5 !important; border-color: #10b981 !important; color: #065f46 !important; }
+        .wrong { background-color: #fee2e2 !important; border-color: #ef4444 !important; animation: shake 0.4s; }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        #result-screen {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            text-align: center;
+        }
+
+        .long-text { font-size: 1.2rem; }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        
+        <div class="header">
+            <span id="mode-text">Mode: Eng ➔ Chi</span>
+            <span id="progress-text">1 / 10</span>
+        </div>
+
+        <div id="listen-phase" class="listening-stage">
+            <div class="ear-icon">👂</div>
+            <div class="instruction">Listen to the Teacher...</div>
+            
+            <div class="code-box">
+                <div class="code-label">Teacher Code</div>
+                <div class="code-display" id="teacher-code">N-01</div>
+            </div>
+        </div>
+
+        <div id="options-phase" class="options-grid" style="display: none;"></div>
+
+        <div id="result-screen">
+            <h1 style="font-size: 3rem; color: var(--primary);">All Done!</h1>
+            <button class="action-btn" style="border-radius: 50px; width: auto; padding: 15px 50px;" onclick="location.reload()">Play Again</button>
+        </div>
+
+        <button id="main-btn" class="action-btn" onclick="handleMainBtn()">Show Options</button>
+
+    </div>
+
+    <script>
+        // 資料庫 (含代號)
+        const rawData = [
+            // Numbers (N-01 ~ N-12)
+            { id: "N-01", en: "One", cn: "一" },
+            { id: "N-02", en: "Two", cn: "二" },
+            { id: "N-03", en: "Three", cn: "三" },
+            { id: "N-04", en: "Four", cn: "四" },
+            { id: "N-05", en: "Five", cn: "五" },
+            { id: "N-06", en: "Six", cn: "六" },
+            { id: "N-07", en: "Seven", cn: "七" },
+            { id: "N-08", en: "Eight", cn: "八" },
+            { id: "N-09", en: "Nine", cn: "九" },
+            { id: "N-10", en: "Ten", cn: "十" },
+            { id: "N-11", en: "Eleven", cn: "十一" },
+            { id: "N-12", en: "Twelve", cn: "十二" },
+            
+            // Sentences (S-01 ~ S-19)
+            { id: "S-01", en: "Hi.", cn: "嗨。" },
+            { id: "S-02", en: "Hello.", cn: "你好。" },
+            { id: "S-03", en: "How are you?", cn: "你好嗎？" },
+            { id: "S-04", en: "I’m fine.", cn: "我很好。" },
+            { id: "S-05", en: "I’m good.", cn: "我不錯。" },
+            { id: "S-06", en: "Good morning.", cn: "早安。" },
+            { id: "S-07", en: "Good afternoon.", cn: "午安。" },
+            { id: "S-08", en: "Good evening.", cn: "晚安。" },
+            { id: "S-09", en: "Good night.", cn: "晚安 (睡前)。" },
+            { id: "S-10", en: "What’s your name?", cn: "你叫什麼名字？" },
+            { id: "S-11", en: "My name is ___.", cn: "我的名字是___。" },
+            { id: "S-12", en: "I’m ___.", cn: "我是___。" },
+            { id: "S-13", en: "Nice to meet you.", cn: "很高興認識你。" },
+            { id: "S-14", en: "Nice to meet you, too.", cn: "也很高興認識你。" },
+            { id: "S-15", en: "How old are you?", cn: "你幾歲？" },
+            { id: "S-16", en: "I’m ___ years old.", cn: "我___歲。" },
+            { id: "S-17", en: "Thank you.", cn: "謝謝。" },
+            { id: "S-18", en: "You’re welcome.", cn: "不客氣。" },
+            { id: "S-19", en: "Goodbye.", cn: "再見。" }
+        ];
+
+        let queue = [];
+        let currentIndex = 0;
+        let currentItem = null;
+        let isListeningPhase = true;
+        let currentMode = 'EnToCn'; // 預設聽英選中
+
+        const listenPhase = document.getElementById('listen-phase');
+        const optionsPhase = document.getElementById('options-phase');
+        const teacherCode = document.getElementById('teacher-code');
+        const mainBtn = document.getElementById('main-btn');
+        const progressText = document.getElementById('progress-text');
+        const resultScreen = document.getElementById('result-screen');
+        const modeText = document.getElementById('mode-text');
+
+        function initGame() {
+            // 隨機決定模式
+            currentMode = Math.random() > 0.5 ? 'EnToCn' : 'CnToEn';
+            modeText.innerText = currentMode === 'EnToCn' 
+                ? "Mode: Listen English ➔ Pick Chinese" 
+                : "Mode: Listen Chinese ➔ Pick English";
+
+            // 洗牌
+            queue = shuffleArray([...rawData]);
+            // 可選: 取前10題避免太長
+            // queue = queue.slice(0, 10);
+            
+            currentIndex = 0;
+            loadRound();
+        }
+
+        function loadRound() {
+            if (currentIndex >= queue.length) {
+                showEndScreen();
+                return;
+            }
+
+            currentItem = queue[currentIndex];
+            progressText.innerText = `${currentIndex + 1} / ${queue.length}`;
+
+            isListeningPhase = true;
+            listenPhase.style.display = 'flex';
+            optionsPhase.style.display = 'none';
+            mainBtn.style.display = 'block';
+            mainBtn.innerText = "Show Options (顯示選項)";
+            
+            // 關鍵修改：顯示 ID (代號)，不顯示題目
+            teacherCode.innerText = currentItem.id;
+        }
+
+        function handleMainBtn() {
+            if (isListeningPhase) {
+                isListeningPhase = false;
+                listenPhase.style.display = 'none';
+                optionsPhase.style.display = 'grid';
+                mainBtn.style.display = 'none';
+                generateOptions();
+            }
+        }
+
+        function generateOptions() {
+            optionsPhase.innerHTML = '';
+            
+            let pool = queue.filter(i => i !== currentItem);
+            pool = shuffleArray(pool).slice(0, 3);
+            
+            let optionsData = [currentItem, ...pool];
+            optionsData = shuffleArray(optionsData);
+
+            optionsData.forEach(item => {
+                // 如果是 EnToCn 模式，選項顯示中文；反之顯示英文
+                let btnText = (currentMode === 'EnToCn') ? item.cn : item.en;
+                let isCorrect = (item === currentItem);
+
+                const btn = document.createElement('div');
+                btn.className = 'option-btn';
+                if (btnText.length > 15) btn.classList.add('long-text');
+                btn.innerText = btnText;
+                
+                btn.onclick = () => checkAnswer(btn, isCorrect);
+                optionsPhase.appendChild(btn);
+            });
+        }
+
+        function checkAnswer(btn, isCorrect) {
+            if (isCorrect) {
+                btn.classList.add('correct');
+                setTimeout(() => {
+                    currentIndex++;
+                    loadRound();
+                }, 800);
+            } else {
+                btn.classList.add('wrong');
+                setTimeout(() => {
+                    btn.classList.remove('wrong');
+                }, 500);
+            }
+        }
+
+        function showEndScreen() {
+            listenPhase.style.display = 'none';
+            optionsPhase.style.display = 'none';
+            mainBtn.style.display = 'none';
+            resultScreen.style.display = 'flex';
+        }
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        initGame();
+
+    </script>
+</body>
+</html>

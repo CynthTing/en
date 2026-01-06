@@ -6,16 +6,14 @@
     <title>Classroom English Games Hub</title>
     <style>
         :root {
-            --bg-color: #f0f4f8;
+            --bg-color: #f8fafc;
+            --text-main: #334155;
             --card-bg: #ffffff;
-            --text-color: #2d3748;
-            --primary: #4facfe;
-            --secondary: #00f2fe;
         }
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            background-color: var(--bg-color);
             margin: 0;
             min-height: 100vh;
             display: flex;
@@ -26,24 +24,23 @@
 
         header {
             text-align: center;
-            margin-bottom: 50px;
+            margin-bottom: 40px;
         }
 
         h1 {
-            font-size: 3.5rem;
-            color: #2c3e50;
-            margin: 0;
-            text-shadow: 2px 2px 0px rgba(255,255,255,0.5);
-            letter-spacing: 2px;
+            font-size: 3rem;
+            color: #1e293b;
+            margin: 0 0 10px 0;
+            letter-spacing: 1px;
         }
 
         p {
-            font-size: 1.5rem;
-            color: #555;
-            margin-top: 10px;
+            font-size: 1.2rem;
+            color: #64748b;
+            margin: 0;
         }
 
-        /* 遊戲卡片網格 */
+        /* 遊戲網格 (RWD: 手機1欄、平板2欄、電腦3欄) */
         .game-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -52,103 +49,134 @@
             max-width: 1200px;
         }
 
-        /* 卡片樣式 */
+        /* 卡片設計 */
         .game-card {
             background: var(--card-bg);
             border-radius: 20px;
             padding: 30px;
             text-align: center;
             text-decoration: none;
-            color: var(--text-color);
-            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-            transition: transform 0.3s, box-shadow 0.3s;
-            border: 5px solid transparent;
+            color: var(--text-main);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            height: 250px;
+            height: 260px;
             position: relative;
-            overflow: hidden;
         }
 
         .game-card:hover {
-            transform: translateY(-10px);
-            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
-            border-color: var(--primary);
+            transform: translateY(-8px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
         }
 
         .icon {
-            font-size: 5rem;
-            margin-bottom: 15px;
+            font-size: 4.5rem;
+            margin-bottom: 20px;
             transition: transform 0.3s;
         }
 
         .game-card:hover .icon {
-            transform: scale(1.2) rotate(10deg);
+            transform: scale(1.1) rotate(5deg);
         }
 
         .title {
-            font-size: 2rem;
-            font-weight: bold;
+            font-size: 1.8rem;
+            font-weight: 800;
             margin-bottom: 10px;
         }
 
         .desc {
-            font-size: 1.1rem;
-            color: #718096;
+            font-size: 1rem;
+            color: #94a3b8;
+            line-height: 1.5;
         }
 
-        /* 個別卡片配色 */
-        .card-1 { border-bottom: 8px solid #FFD700; }
-        .card-2 { border-bottom: 8px solid #34C759; }
-        .card-3 { border-bottom: 8px solid #ff9a9e; }
-        .card-4 { border-bottom: 8px solid #e74c3c; }
+        /* 個別卡片配色 (底部邊框 + 標題顏色) */
+        
+        /* Game 1: Roulette (Gold) */
+        .card-1 { border-bottom: 6px solid #fbbf24; }
+        .card-1 .title { color: #d97706; }
 
-        /* 頁腳 */
+        /* Game 2: Chat (Green) */
+        .card-2 { border-bottom: 6px solid #34d399; }
+        .card-2 .title { color: #059669; }
+
+        /* Game 3: 2-Player (Blue) */
+        .card-3 { border-bottom: 6px solid #60a5fa; }
+        .card-3 .title { color: #2563eb; }
+
+        /* Game 4: Bomb (Red) */
+        .card-4 { border-bottom: 6px solid #f87171; }
+        .card-4 .title { color: #dc2626; }
+
+        /* Game 5: Puzzle Blocks (Purple) */
+        .card-5 { border-bottom: 6px solid #818cf8; }
+        .card-5 .title { color: #4f46e5; }
+
+        /* Game 6: Listening (Pink) */
+        .card-6 { border-bottom: 6px solid #f472b6; }
+        .card-6 .title { color: #db2777; }
+
         footer {
             margin-top: 50px;
-            color: #888;
-            font-size: 1rem;
+            color: #cbd5e1;
+            font-size: 0.9rem;
         }
-
     </style>
 </head>
 <body>
 
     <header>
-        <h1>🎮 Classroom Games Suite</h1>
-        <p>Select a game to start learning!</p>
+        <h1>🎮 English Game Suite</h1>
+        <p>Interactive Learning for 4th Grade</p>
     </header>
 
     <div class="game-grid">
+        
         <a href="en.html" class="game-card card-1">
             <div class="icon">🎡</div>
             <div class="title">Roulette</div>
-            <div class="desc">Spin specifically for sentences & numbers.</div>
+            <div class="desc">Spin the wheel for sentences & numbers.</div>
         </a>
 
         <a href="chat_v2.html" class="game-card card-2">
             <div class="icon">🤖</div>
             <div class="title">Chat with Robo</div>
-            <div class="desc">Solo practice with AI bot (Name & Age).</div>
+            <div class="desc">Practice conversation with AI (Name & Age).</div>
         </a>
 
         <a href="2player_split.html" class="game-card card-3">
             <div class="icon">👥</div>
             <div class="title">2-Player Co-op</div>
-            <div class="desc">Split-screen dialogue practice.</div>
+            <div class="desc">Split-screen battle! Ask & Answer together.</div>
         </a>
 
         <a href="bomb_game.html" class="game-card card-4">
             <div class="icon">💣</div>
             <div class="title">Speed Defusal</div>
-            <div class="desc">Exciting timed challenge! Don't explode!</div>
+            <div class="desc">Exciting time-pressure challenge!</div>
         </a>
+
+        <a href="puzzle_game.html" class="game-card card-5">
+            <div class="icon">🧩</div>
+            <div class="title">Puzzle Blocks</div>
+            <div class="desc">Unscramble letters (Words) & words (Sentences).</div>
+        </a>
+
+        <a href="listening_game.html" class="game-card card-6">
+            <div class="icon">👂</div>
+            <div class="title">Listen & Pick</div>
+            <div class="desc">Teacher reads the code, you pick the answer!</div>
+        </a>
+
     </div>
 
     <footer>
-        Designed for 4th Grade English Class
+        Designed for Classroom Interaction
     </footer>
 
 </body>
